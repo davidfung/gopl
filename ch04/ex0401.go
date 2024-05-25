@@ -3,7 +3,7 @@ package main
 
 import (
 	"fmt"
-	"strconv"
+	"crypto/sha256"
 )
 
 func main() {
@@ -11,24 +11,37 @@ func main() {
 	// sha256 hash
 	//                        1               2               3
 	//        0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
-	hash1 := "9834876dcfb05cb167a5c24953eba58c4ac89b1adf57f28f2f9d09af107ee8f0"
-	// hash2 := "8834876dcfb05cb167a5c24853eba58c4ac88b2adf57f28f2f9d09af107ee8f1"
-	hash2 := "3cf9a1a81f6bdeaf08a343c1e1c73e89cf44c06ac2427a892382cae825e7c9c1"
+	// "aaa" hash1 := "9834876dcfb05cb167a5c24953eba58c4ac89b1adf57f28f2f9d09af107ee8f0"
+	// "bbb" hash2 := "3cf9a1a81f6bdeaf08a343c1e1c73e89cf44c06ac2427a892382cae825e7c9c1"
+
+	hash1 := sha256.Sum256([]byte("aaa"))
+	hash2 := sha256.Sum256([]byte("bbb"))
+	fmt.Printf("hash1 (%T)=%x\n", hash1, hash1)
+	fmt.Printf("hash2 (%T)=%x\n", hash2, hash2)
+
 	cnt := countDiffBits(hash1, hash2)
-	fmt.Printf("hash1 = %s\nhash2 = %s\ndiff bits = %d\n", hash1, hash2, cnt)
+	fmt.Printf("hash1 = %x\nhash2 = %x\ndiff bits = %d\n", hash1, hash2, cnt)
 }
 
-func countDiffBits(hash1, hash2 string) int {
+func countDiffBits(hash1, hash2 [32]uint8) int {
 	//todo
-	h1 := []string{hash1[:16], hash1[16:32], hash1[32:48], hash1[48:]}
-	h2 := []string{hash2[:16], hash2[16:32], hash2[32:48], hash2[48:]}
+	h1 := [][]uint8{hash1[:8], hash1[8:16], hash1[16:24], hash1[24:32]}
+	h2 := [][]uint8{hash2[:8], hash2[8:16], hash2[16:24], hash2[24:32]}
 	count := 0
 	for i := range h1 {
 		fmt.Println(i)
-		fmt.Println(h1[i])
-		fmt.Println(h2[i])
-	    u1, _ := strconv.ParseUint(h1[i], 16, 64)
-	    u2, _ := strconv.ParseUint(h2[i], 16, 64)
+		fmt.Printf("h1[%d], %v\n", i, h1[i])
+		fmt.Printf("h2[%d], %v\n", i, h2[i])
+		fmt.Printf("%T\n", h1[i])
+
+		var u1 uint64
+		for _, b := range h1[i] {
+			u1 = u1 << 8 + uint64(b)
+		}
+		var u2 uint64
+		for _, b := range h2[i] {
+			u2 = u2 << 8 + uint64(b)
+		}
 	    u := u1 ^ u2
 	    count += PopCount(u)
 	}
