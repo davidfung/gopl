@@ -22,6 +22,8 @@ type Comic struct {
 	Img   string
 }
 
+const CSV = `.\xkcd.idx`
+
 var flagBuildIndex bool
 
 func init() {
@@ -33,12 +35,38 @@ func main() {
 		fmt.Println("buildindex mode")
 		buildIndex()
 	} else {
-		fmt.Println("search mode")
-		search()
+		fmt.Println("lookup mode")
+		lookup()
 	}
 }
 
-func search() {
+func lookup() {
+	keyterm := flag.Arg(0)
+	fmt.Printf("Looking up: %s\n", keyterm)
+	comics := load(CSV)
+	matches := search(comics, keyterm)
+	results := report(matches)
+	display(results)
+}
+
+// Load the csv into an in-memory array of Comic.
+func load(csv string) []Comic {
+	return nil
+}
+
+// search an array of Comic by a key term.
+func search(comics []Comic, keyterm string) []Comic {
+	return nil
+}
+
+// Compose a report from the matches.
+func report(comics []Comic) string {
+	return ""
+}
+
+// Display the search report.
+func display(results string) {
+
 }
 
 func buildIndex() {
