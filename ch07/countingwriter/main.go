@@ -13,13 +13,26 @@ import (
 	"os"
 )
 
-func CountingWriter(w io.Writer) (io.Writer, *int64) {
-	var count int64 = 42
-	return w, &count
+type MyWriter struct {
+	Count      int64
+	OrigWriter io.Writer
 }
+
+func (c *MyWriter) Write(p []byte) (n int, err error) {
+	n, err = c.OrigWriter.Write(p)
+	c.Count += int64(n)
+	return n, err
+}
+
+func CountingWriter(w io.Writer) (io.Writer, *int64) {
+	myWriter := MyWriter{OrigWriter: w}
+	return &myWriter, &myWriter.Count
+}
+
 func main() {
-	var name = "Dolly"
-	w, c := CountingWriter(os.Stdout)
-	fmt.Fprintf(w, "hello, %s\n", name)
-	fmt.Printf("Total bytes written = %d\n", *c)
+	writer, count := CountingWriter(os.Stdout)
+	fmt.Fprintln(writer, "hello, world")
+	fmt.Printf("Total bytes written = %d\n", *count)
+	fmt.Fprintf(writer, "%s\n", "Safety")
+	fmt.Printf("Total bytes written = %d\n", *count)
 }
