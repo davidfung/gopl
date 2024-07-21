@@ -19,14 +19,23 @@ import (
 	"golang.org/x/net/html"
 )
 
-func newReader(s string) io.Reader {
+// type Reader interface {
+// Read(p []byte) (n int, err error)
+// }
+
+type MyString struct {
+	s string
+}
+
+func (r MyString) newReader(s string) io.Reader {
 	return strings.NewReader(s)
 }
 
 // !+
 func main() {
 	s := `<p>Links:</p><ul><li><a href="foo">Foo</a><li><a href="/bar/baz">BarBaz</a></ul>`
-	doc, err := html.Parse(newReader(s))
+	myString := new(MyString)
+	doc, err := html.Parse(myString.newReader(s))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "outline: %v\n", err)
 		os.Exit(1)
@@ -77,6 +86,3 @@ func outline(stack []string, n *html.Node) {
 // nothing happened; in particular it does not indicate EOF.
 //
 // Implementations must not retain p.
-type Reader interface {
-	Read(p []byte) (n int, err error)
-}
