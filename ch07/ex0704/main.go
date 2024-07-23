@@ -14,27 +14,35 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
 
 	"golang.org/x/net/html"
 )
-
-// type Reader interface {
-// Read(p []byte) (n int, err error)
-// }
 
 type MyString struct {
 	s string
 }
 
-func (r MyString) newReader(s string) io.Reader {
-	return strings.NewReader(s)
+func (myString MyString) Read(p []byte) (n int, err error) {
+	n = copy(p, myString.s)
+	if n == len(myString.s) {
+		err = io.EOF
+	}
+	fmt.Printf("s=%d p=%d n=%d\n", len(myString.s), len(p), n)
+	return n, err
+}
+
+func (myString MyString) newReader(s string) io.Reader {
+	myString.s = s
+	return myString
 }
 
 // !+
 func main() {
 	s := `<p>Links:</p><ul><li><a href="foo">Foo</a><li><a href="/bar/baz">BarBaz</a></ul>`
-	myString := new(MyString)
+	s = s + s + s + s
+	s = s + s + s + s
+	s = s + s + s + s
+	myString := MyString{s}
 	doc, err := html.Parse(myString.newReader(s))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "outline: %v\n", err)
