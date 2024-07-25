@@ -19,19 +19,21 @@ import (
 )
 
 type MyString struct {
-	s string
+	s   string
+	ptr int
 }
 
-func (myString MyString) Read(p []byte) (n int, err error) {
-	n = copy(p, myString.s)
-	if n == len(myString.s) {
+func (myString *MyString) Read(p []byte) (n int, err error) {
+	n = copy(p, []byte(myString.s[myString.ptr:]))
+	myString.ptr += n
+	if myString.ptr >= len(myString.s) {
 		err = io.EOF
 	}
 	fmt.Printf("s=%d p=%d n=%d\n", len(myString.s), len(p), n)
 	return n, err
 }
 
-func (myString MyString) newReader(s string) io.Reader {
+func (myString *MyString) newReader(s string) io.Reader {
 	myString.s = s
 	return myString
 }
@@ -42,7 +44,7 @@ func main() {
 	s = s + s + s + s
 	s = s + s + s + s
 	s = s + s + s + s
-	myString := MyString{s}
+	myString := MyString{s: s}
 	doc, err := html.Parse(myString.newReader(s))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "outline: %v\n", err)
