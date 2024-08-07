@@ -9,6 +9,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"html/template"
+	"log"
 	"os"
 	"sort"
 	"text/tabwriter"
@@ -31,6 +33,28 @@ var tracks = []*Track{
 	{"Ready 2 Go", "Martin Solveig", "Smash", 2011, length("4m24s")},
 }
 
+var trackList = template.Must(template.New("tracklist").Parse(`
+<h1>Tracks</h1>
+<table>
+<tr style='text-align: left'>
+  <th>Title</th>
+  <th>Artist</th>
+  <th>Album</th>
+  <th>Year</th>
+  <th>Length</th>
+</tr>
+{{range .}}
+<tr>
+  <td><a href='{{"https://go.dev"}}'>{{.Title}}</a></td>
+  <td>{{.Artist}}</td>
+  <td>{{.Album}}</td>
+  <td>{{.Year}}</td>
+  <td>{{.Length}}</td>
+</tr>
+{{end}}
+</table>
+`))
+
 func length(s string) time.Duration {
 	d, err := time.ParseDuration(s)
 	if err != nil {
@@ -46,13 +70,13 @@ var htmlFlag = flag.Bool("html", false, "output in HTML format")
 // !+printTracks
 func printTracks(tracks []*Track) {
 	if *htmlFlag {
-		printTracks2(tracks)
+		printTracks_html(tracks)
 	} else {
-		printTracks1(tracks)
+		printTracks_tabwriter(tracks)
 	}
 }
 
-func printTracks1(tracks []*Track) {
+func printTracks_tabwriter(tracks []*Track) {
 	const format = "%v\t%v\t%v\t%v\t%v\t\n"
 	tw := new(tabwriter.Writer).Init(os.Stdout, 0, 8, 2, ' ', 0)
 	fmt.Fprintf(tw, format, "Title", "Artist", "Album", "Year", "Length")
@@ -63,16 +87,10 @@ func printTracks1(tracks []*Track) {
 	tw.Flush() // calculate column widths and print table
 }
 
-func printTracks2(tracks []*Track) {
-	const format = "%v\t%v\t%v\t%v\t%v\t\n"
-	tw := new(tabwriter.Writer).Init(os.Stdout, 0, 8, 2, ' ', 0)
-	fmt.Fprintf(tw, format, "HTML", "HTML", "HTML", "HTML", "HTML")
-	fmt.Fprintf(tw, format, "Title", "Artist", "Album", "Year", "Length")
-	fmt.Fprintf(tw, format, "-----", "------", "-----", "----", "------")
-	for _, t := range tracks {
-		fmt.Fprintf(tw, format, t.Title, t.Artist, t.Album, t.Year, t.Length)
+func printTracks_html(tracks []*Track) {
+	if err := trackList.Execute(os.Stdout, tracks); err != nil {
+		log.Fatal(err)
 	}
-	tw.Flush() // calculate column widths and print table
 }
 
 //!-printTracks
@@ -177,16 +195,3 @@ func (x customSort) Less(i, j int) bool { return x.less(x.t[i], x.t[j]) }
 func (x customSort) Swap(i, j int)      { x.t[i], x.t[j] = x.t[j], x.t[i] }
 
 //!-customcode
-
-func init() {
-	//!+ints
-	values := []int{3, 1, 4, 1}
-	fmt.Println(sort.IntsAreSorted(values)) // "false"
-	sort.Ints(values)
-	fmt.Println(values)                     // "[1 1 3 4]"
-	fmt.Println(sort.IntsAreSorted(values)) // "true"
-	sort.Sort(sort.Reverse(sort.IntSlice(values)))
-	fmt.Println(values)                     // "[4 3 1 1]"
-	fmt.Println(sort.IntsAreSorted(values)) // "false"
-	//!-ints
-}
