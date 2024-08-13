@@ -7,13 +7,11 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"html/template"
 	"log"
-	"os"
+	"net/http"
 	"sort"
-	"text/tabwriter"
 	"time"
 )
 
@@ -33,19 +31,46 @@ var tracks = []*Track{
 	{"Ready 2 Go", "Martin Solveig", "Smash", 2011, length("4m24s")},
 }
 
+func main() {
+	// sort.Sort(byArtist(tracks))
+	http.HandleFunc("/list", list)
+	log.Fatal(http.ListenAndServe("localhost:8000", nil))
+}
+
+func list(w http.ResponseWriter, req *http.Request) {
+	// endpoint /list?by=title|artist|album|year|length
+	by := req.URL.Query().Get("by")
+	fmt.Printf("%v by=%s\n", time.Now(), by)
+	switch {
+	case by == "title":
+		sort.Sort(byTitle(tracks))
+	case by == "artist":
+		sort.Sort(byArtist(tracks))
+	case by == "album":
+		sort.Sort(byAlbum(tracks))
+	case by == "year":
+		sort.Sort(byYear(tracks))
+	case by == "length":
+		sort.Sort(byLength(tracks))
+	default:
+		sort.Sort(byTitle(tracks))
+	}
+	printTracks(w, tracks)
+}
+
 var trackList = template.Must(template.New("tracklist").Parse(`
 <h1>Tracks</h1>
 <table>
 <tr style='text-align: left'>
-  <th>Title</th>
-  <th>Artist</th>
-  <th>Album</th>
-  <th>Year</th>
-  <th>Length</th>
+  <th><a href='{{"list?by=title"}}'>Title</a></th>
+  <th><a href='{{"list?by=artist"}}'>Artist</a></th>
+  <th><a href='{{"list?by=album"}}'>Album</a></th>
+  <th><a href='{{"list?by=year"}}'>Year</a></th>
+  <th><a href='{{"list?by=length"}}'>Length</a></th>
 </tr>
 {{range .}}
 <tr>
-  <td><a href='{{"https://go.dev"}}'>{{.Title}}</a></td>
+  <td>{{.Title}}</a></td>
   <td>{{.Artist}}</td>
   <td>{{.Album}}</td>
   <td>{{.Year}}</td>
@@ -63,88 +88,41 @@ func length(s string) time.Duration {
 	return d
 }
 
-//!-main
-
-var htmlFlag = flag.Bool("html", false, "output in HTML format")
-
-// !+printTracks
-func printTracks(tracks []*Track) {
-	if *htmlFlag {
-		printTracks_html(tracks)
-	} else {
-		printTracks_tabwriter(tracks)
-	}
-}
-
-func printTracks_tabwriter(tracks []*Track) {
-	const format = "%v\t%v\t%v\t%v\t%v\t\n"
-	tw := new(tabwriter.Writer).Init(os.Stdout, 0, 8, 2, ' ', 0)
-	fmt.Fprintf(tw, format, "Title", "Artist", "Album", "Year", "Length")
-	fmt.Fprintf(tw, format, "-----", "------", "-----", "----", "------")
-	for _, t := range tracks {
-		fmt.Fprintf(tw, format, t.Title, t.Artist, t.Album, t.Year, t.Length)
-	}
-	tw.Flush() // calculate column widths and print table
-}
-
-func printTracks_html(tracks []*Track) {
-	if err := trackList.Execute(os.Stdout, tracks); err != nil {
+func printTracks(wr http.ResponseWriter, tracks []*Track) {
+	if err := trackList.Execute(wr, tracks); err != nil {
 		log.Fatal(err)
 	}
 }
 
-//!-printTracks
+type byTitle []*Track
 
-// !+artistcode
+func (x byTitle) Len() int           { return len(x) }
+func (x byTitle) Less(i, j int) bool { return x[i].Title < x[j].Title }
+func (x byTitle) Swap(i, j int)      { x[i], x[j] = x[j], x[i] }
+
 type byArtist []*Track
 
 func (x byArtist) Len() int           { return len(x) }
 func (x byArtist) Less(i, j int) bool { return x[i].Artist < x[j].Artist }
 func (x byArtist) Swap(i, j int)      { x[i], x[j] = x[j], x[i] }
 
-//!-artistcode
+type byAlbum []*Track
 
-// !+yearcode
+func (x byAlbum) Len() int           { return len(x) }
+func (x byAlbum) Less(i, j int) bool { return x[i].Album < x[j].Album }
+func (x byAlbum) Swap(i, j int)      { x[i], x[j] = x[j], x[i] }
+
 type byYear []*Track
 
 func (x byYear) Len() int           { return len(x) }
 func (x byYear) Less(i, j int) bool { return x[i].Year < x[j].Year }
 func (x byYear) Swap(i, j int)      { x[i], x[j] = x[j], x[i] }
 
-//!-yearcode
+type byLength []*Track
 
-func main() {
-	flag.Parse()
-
-	fmt.Println("byArtist:")
-	sort.Sort(byArtist(tracks))
-	printTracks(tracks)
-
-	fmt.Println("\nReverse(byArtist):")
-	sort.Sort(sort.Reverse(byArtist(tracks)))
-	printTracks(tracks)
-
-	fmt.Println("\nbyYear:")
-	sort.Sort(byYear(tracks))
-	printTracks(tracks)
-
-	fmt.Println("\nCustom:")
-	//!+customcall
-	sort.Sort(customSort{tracks, func(x, y *Track) bool {
-		if x.Title != y.Title {
-			return x.Title < y.Title
-		}
-		if x.Year != y.Year {
-			return x.Year < y.Year
-		}
-		if x.Length != y.Length {
-			return x.Length < y.Length
-		}
-		return false
-	}})
-	//!-customcall
-	printTracks(tracks)
-}
+func (x byLength) Len() int           { return len(x) }
+func (x byLength) Less(i, j int) bool { return int(x[i].Length) < int(x[j].Length) }
+func (x byLength) Swap(i, j int)      { x[i], x[j] = x[j], x[i] }
 
 /*
 //!+artistoutput
@@ -183,15 +161,3 @@ Go Ahead    Alicia Keys     As I Am            2007  4m36s
 Ready 2 Go  Martin Solveig  Smash              2011  4m24s
 //!-customout
 */
-
-// !+customcode
-type customSort struct {
-	t    []*Track
-	less func(x, y *Track) bool
-}
-
-func (x customSort) Len() int           { return len(x.t) }
-func (x customSort) Less(i, j int) bool { return x.less(x.t[i], x.t[j]) }
-func (x customSort) Swap(i, j int)      { x.t[i], x.t[j] = x.t[j], x.t[i] }
-
-//!-customcode
