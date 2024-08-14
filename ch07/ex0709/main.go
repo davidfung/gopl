@@ -43,17 +43,17 @@ func list(w http.ResponseWriter, req *http.Request) {
 	fmt.Printf("%v by=%s\n", time.Now(), by)
 	switch {
 	case by == "title":
-		sort.Sort(byTitle(tracks))
+		sort.Sort(byCustom{tracks, func(i, j Track) bool { return i.Title < j.Title }})
 	case by == "artist":
-		sort.Sort(byArtist(tracks))
+		sort.Sort(byCustom{tracks, func(i, j Track) bool { return i.Artist < j.Artist }})
 	case by == "album":
-		sort.Sort(byAlbum(tracks))
+		sort.Sort(byCustom{tracks, func(i, j Track) bool { return i.Album < j.Album }})
 	case by == "year":
-		sort.Sort(byYear(tracks))
+		sort.Sort(byCustom{tracks, func(i, j Track) bool { return i.Year < j.Year }})
 	case by == "length":
-		sort.Sort(byLength(tracks))
+		sort.Sort(byCustom{tracks, func(i, j Track) bool { return i.Length < j.Length }})
 	default:
-		sort.Sort(byTitle(tracks))
+		sort.Sort(byCustom{tracks, func(i, j Track) bool { return i.Title < j.Title }})
 	}
 	printTracks(w, tracks)
 }
@@ -94,35 +94,14 @@ func printTracks(wr http.ResponseWriter, tracks []*Track) {
 	}
 }
 
-type byTitle []*Track
+type byCustom struct {
+	tracks []*Track
+	less   func(i, j Track) bool
+}
 
-func (x byTitle) Len() int           { return len(x) }
-func (x byTitle) Less(i, j int) bool { return x[i].Title < x[j].Title }
-func (x byTitle) Swap(i, j int)      { x[i], x[j] = x[j], x[i] }
-
-type byArtist []*Track
-
-func (x byArtist) Len() int           { return len(x) }
-func (x byArtist) Less(i, j int) bool { return x[i].Artist < x[j].Artist }
-func (x byArtist) Swap(i, j int)      { x[i], x[j] = x[j], x[i] }
-
-type byAlbum []*Track
-
-func (x byAlbum) Len() int           { return len(x) }
-func (x byAlbum) Less(i, j int) bool { return x[i].Album < x[j].Album }
-func (x byAlbum) Swap(i, j int)      { x[i], x[j] = x[j], x[i] }
-
-type byYear []*Track
-
-func (x byYear) Len() int           { return len(x) }
-func (x byYear) Less(i, j int) bool { return x[i].Year < x[j].Year }
-func (x byYear) Swap(i, j int)      { x[i], x[j] = x[j], x[i] }
-
-type byLength []*Track
-
-func (x byLength) Len() int           { return len(x) }
-func (x byLength) Less(i, j int) bool { return int(x[i].Length) < int(x[j].Length) }
-func (x byLength) Swap(i, j int)      { x[i], x[j] = x[j], x[i] }
+func (x byCustom) Len() int           { return len(x.tracks) }
+func (x byCustom) Less(i, j int) bool { return x.less(*x.tracks[i], *x.tracks[j]) }
+func (x byCustom) Swap(i, j int)      { x.tracks[i], x.tracks[j] = x.tracks[j], x.tracks[i] }
 
 /*
 //!+artistoutput
