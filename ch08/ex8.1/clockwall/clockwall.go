@@ -6,8 +6,6 @@ import (
 	"net"
 	"os"
 	"strings"
-	"text/tabwriter"
-	"time"
 )
 
 type City struct {
@@ -39,29 +37,20 @@ func getCityTime(cities []City) {
 		}
 		defer conn.Close()
 
-		var b []byte
-
-		_, err = conn.Read(b)
+		buffer := make([]byte, 8)
+		_, err = conn.Read(buffer)
 		if err != nil {
-			cities[i].time = string(b)
+			cities[i].time = string(buffer)
 		} else {
-			cities[i].time = "n/a"
+			log.Println(err)
+			cities[i].time = string(buffer)
 		}
 	}
 }
 
-func showClockWall_old(cities []City) {
-	const format = "%v\t%v\t\n"
-	tw := new(tabwriter.Writer).Init(os.Stdout, 0, 8, 2, ' ', 0)
-	for _, city := range cities {
-		fmt.Fprintf(tw, format, city.name, city.time.Format("15:04:05"))
-	}
-	tw.Flush()
-}
-
 func showClockWall(cities []City) {
 	var clist []string
-	var tlist []time.Time
+	var tlist []string
 
 	// 1st row: ciites
 	for i := range cities {
@@ -79,7 +68,7 @@ func showClockWall(cities []City) {
 	}
 	fmt.Printf("|")
 	for _, time := range tlist {
-		fmt.Printf("%12s|", time.Format("15:04:05"))
+		fmt.Printf("%12s|", time)
 	}
 	fmt.Printf("\n")
 }
