@@ -38,12 +38,10 @@ func getCityTime(cities []City) {
 		defer conn.Close()
 
 		buffer := make([]byte, 8)
-		_, err = conn.Read(buffer)
-		if err != nil {
+		if _, err := conn.Read(buffer); err == nil {
 			cities[i].time = string(buffer)
 		} else {
-			log.Println(err)
-			cities[i].time = string(buffer)
+			cities[i].time = fmt.Sprint(err)
 		}
 	}
 }
